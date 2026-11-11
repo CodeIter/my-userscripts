@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HTML Element Picker
 // @namespace    https://docs.scriptcat.org/
-// @version      1.2.1
+// @version      1.2.2
 // @description  Pick HTML element and display its CSS selector in a clean Shadow DOM modal
 // @author       CodeIter
 // @match        *://*/*
@@ -75,6 +75,23 @@
     let tooltipBadge = null;
     let shadowHost = null;
     let shadowRoot = null;
+
+    function adoptStyleSheet(target, cssText) {
+        if (!cssText || !target || typeof CSSStyleSheet === 'undefined' || !('adoptedStyleSheets' in target)) {
+            return;
+        }
+
+        try {
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(cssText);
+            const existingSheets = Array.from(target.adoptedStyleSheets || []);
+            if (!existingSheets.some(existingSheet => existingSheet.cssText === sheet.cssText)) {
+                target.adoptedStyleSheets = [...existingSheets, sheet];
+            }
+        } catch (err) {
+            console.warn('[HTML Element Picker] Failed to adopt stylesheet:', err);
+        }
+    }
 
     /**
      * Safely escapes string components for standard CSS query selectors
@@ -524,9 +541,7 @@
 
         shadowRoot = shadowHost.attachShadow({ mode: 'open' });
 
-        // CSS Styles encapsulated entirely within the Shadow DOM
-        const style = document.createElement('style');
-        style.textContent = `
+        const styleCss = `
             :host {
                 all: initial;
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -806,7 +821,7 @@
         modalBox.appendChild(modalFooter);
         backdrop.appendChild(modalBox);
 
-        shadowRoot.appendChild(style);
+        adoptStyleSheet(shadowRoot, styleCss);
         shadowRoot.appendChild(backdrop);
         document.body.appendChild(shadowHost);
 
