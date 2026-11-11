@@ -17,6 +17,11 @@
  * MOVED to html2canvas-pro.
  */
 
+/**
+ * XXX Applying inline style violates the following Content Security Policy directive 'style-src 'self''. The action has been blocked.
+ * Caused by html2canvas-pro.
+ */
+
 (function() {
 'use strict';
 
