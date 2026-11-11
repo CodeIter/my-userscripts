@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Simple StopWatch Script
 // @namespace    https://docs.scriptcat.org/
-// @version      2.0.0
+// @version      2.0.1
 // @description  A draggable stopwatch with shadow DOM UI, three standard controls, and lap recorder.
 // @author       CodeIter
 // @match        *://*/*
@@ -12,6 +12,23 @@
 
 (function() {
     'use strict';
+
+    function adoptStyleSheet(target, cssText) {
+        if (!cssText || !target || typeof CSSStyleSheet === 'undefined' || !('adoptedStyleSheets' in target)) {
+            return;
+        }
+
+        try {
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(cssText);
+            const existingSheets = Array.from(target.adoptedStyleSheets || []);
+            if (!existingSheets.some(existingSheet => existingSheet.cssText === sheet.cssText)) {
+                target.adoptedStyleSheets = [...existingSheets, sheet];
+            }
+        } catch (err) {
+            console.warn('[StopWatch] Failed to adopt stylesheet:', err);
+        }
+    }
 
     class StopWatch {
         constructor() {
@@ -81,8 +98,7 @@
             // Attach isolated shadow DOM
             this.shadowRoot = this.hostElement.attachShadow({ mode: 'open' });
 
-            const styleEl = document.createElement('style');
-            styleEl.textContent = `
+            adoptStyleSheet(this.shadowRoot, `
                 :host {
                     --bg-dark: #18181b;
                     --bg-card: #27272a;
@@ -296,8 +312,7 @@
                     from { opacity: 0; transform: translateY(-4px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
-            `;
-            this.shadowRoot.appendChild(styleEl);
+            `);
 
             const container = document.createElement('div');
             container.className = 'container';
