@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Take Screenshot with html2canvas-pro
 // @namespace    https://docs.scriptcat.org/
-// @version      1.2.1
+// @version      1.2.2
 // @description  Take screenshot from web browser with html2canvas-pro lib
 // @author       CodeIter
 // @match        *://*/*
@@ -49,6 +49,24 @@ const CONFIG = {
 // ==========================================
 // STYLES INJECTION
 // ==========================================
+
+function adoptStyleSheet(target, cssText) {
+    if (!cssText || !target || typeof CSSStyleSheet === 'undefined' || !('adoptedStyleSheets' in target)) {
+        return;
+    }
+
+    try {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(cssText);
+        const existingSheets = Array.from(target.adoptedStyleSheets || []);
+        if (!existingSheets.some(existingSheet => existingSheet.cssText === sheet.cssText)) {
+            target.adoptedStyleSheets = [...existingSheets, sheet];
+        }
+    } catch (err) {
+        console.warn('[Screenshot] Failed to adopt stylesheet:', err);
+    }
+}
+
 const STYLES = `
     .ts-modal-overlay {
         position: fixed;
@@ -159,11 +177,9 @@ const STYLES = `
 `;
 
 function injectStyles() {
-    if (!document.getElementById('ts-styles')) {
-        const style = document.createElement('style');
-        style.id = 'ts-styles';
-        style.textContent = STYLES;
-        document.head.appendChild(style);
+    if (!document.documentElement.dataset.tsStylesApplied) {
+        adoptStyleSheet(document, STYLES);
+        document.documentElement.dataset.tsStylesApplied = 'true';
     }
 }
 
