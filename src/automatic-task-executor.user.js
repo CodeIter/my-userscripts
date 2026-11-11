@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Automatic Task Executor
 // @namespace    https://docs.scriptcat.org/
-// @version      2.5.1
+// @version      2.5.2
 // @description  Let your web browser execute tasks automatically.
 // @author       CodeIter
 // @match        *://*/*
@@ -27,6 +27,23 @@ const CONFIG = {
     POLL_INTERVAL_MS: 200,
     DEBUG_MODE: true
 };
+
+function adoptStyleSheet(target, cssText) {
+    if (!cssText || !target || typeof CSSStyleSheet === 'undefined' || !('adoptedStyleSheets' in target)) {
+        return;
+    }
+
+    try {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(cssText);
+        const existingSheets = Array.from(target.adoptedStyleSheets || []);
+        if (!existingSheets.some(existingSheet => existingSheet.cssText === sheet.cssText)) {
+            target.adoptedStyleSheets = [...existingSheets, sheet];
+        }
+    } catch (err) {
+        console.warn('[Task Executor] Failed to adopt stylesheet:', err);
+    }
+}
 
 // Logging helper
 const log = {
@@ -1105,10 +1122,7 @@ function openManagerModal() {
         shadowHost.id = 'ate-modal-host';
         shadowRoot = shadowHost.attachShadow({ mode: 'open' });
 
-        const styleEl = document.createElement('style');
-        styleEl.id = 'ate-modal-styles';
-        styleEl.textContent = MODAL_STYLES;
-        shadowRoot.appendChild(styleEl);
+        adoptStyleSheet(shadowRoot, MODAL_STYLES);
 
         (document.body || document.documentElement).appendChild(shadowHost);
     }
