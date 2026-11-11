@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Snake game
 // @namespace    https://docs.scriptcat.org/
-// @version      1.4.0
+// @version      1.4.1
 // @description  Snake game inside web browser with pass through walls option.
 // @author       CodeIter
 // @match        *://*/*
@@ -96,6 +96,23 @@
         return shadowRoot ? shadowRoot.getElementById(id) : null;
     }
 
+    function adoptStyleSheet(target, cssText) {
+        if (!cssText || !target || typeof CSSStyleSheet === 'undefined' || !('adoptedStyleSheets' in target)) {
+            return;
+        }
+
+        try {
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(cssText);
+            const existingSheets = Array.from(target.adoptedStyleSheets || []);
+            if (!existingSheets.some(existingSheet => existingSheet.cssText === sheet.cssText)) {
+                target.adoptedStyleSheets = [...existingSheets, sheet];
+            }
+        } catch (err) {
+            console.warn('[Snake Game] Failed to adopt stylesheet:', err);
+        }
+    }
+
     // Safe DOM element builder that avoids TrustedType / innerHTML restrictions completely
     function el(tag, props = {}, children = []) {
         const element = document.createElement(tag);
@@ -137,8 +154,7 @@
         // Attach Shadow Root
         shadowRoot = shadowHost.attachShadow({ mode: 'open' });
 
-        const style = document.createElement('style');
-        style.appendChild(document.createTextNode(`
+        const styleText = `
             :host {
                 all: initial;
             }
@@ -272,7 +288,7 @@
             .sg-input:focus {
                 border-color: #38bdf8;
             }
-        `));
+        `;
 
         // Programmatically build DOM without innerHTML to satisfy TrustedHTML CSP rules
         modalContainer = el('div', { class: 'sg-modal-overlay' }, [
@@ -295,7 +311,7 @@
             ])
         ]);
 
-        shadowRoot.appendChild(style);
+        adoptStyleSheet(shadowRoot, styleText);
         shadowRoot.appendChild(modalContainer);
         document.body.appendChild(shadowHost);
 
