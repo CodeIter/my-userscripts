@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TODO List App
 // @namespace    https://docs.scriptcat.org/
-// @version      1.5.1
+// @version      1.5.2
 // @description  Manage your todo list inside the browser
 // @author       CodeIter
 // @match        *://*/*
@@ -58,6 +58,23 @@
         // Default Category Tags
         CATEGORIES: ['General', 'Work', 'Personal', 'Shopping', 'Ideas']
     };
+
+    function adoptStyleSheet(target, cssText) {
+        if (!cssText || !target || typeof CSSStyleSheet === 'undefined' || !('adoptedStyleSheets' in target)) {
+            return;
+        }
+
+        try {
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(cssText);
+            const existingSheets = Array.from(target.adoptedStyleSheets || []);
+            if (!existingSheets.some(existingSheet => existingSheet.cssText === sheet.cssText)) {
+                target.adoptedStyleSheets = [...existingSheets, sheet];
+            }
+        } catch (err) {
+            console.warn('[TodoApp] Failed to adopt stylesheet:', err);
+        }
+    }
 
     // =========================================================================
     // STORAGE ABSTRACTION (GM API with LocalStorage Fallback)
@@ -629,10 +646,8 @@
         dialogEl = shadowRoot.getElementById('todo-app-dialog');
         if (dialogEl) return;
 
-        // Append CSS Style
-        const styleEl = document.createElement('style');
-        styleEl.textContent = SHADOW_STYLES;
-        shadowRoot.appendChild(styleEl);
+        // Append CSS via adopted stylesheet to avoid CSP inline-style restrictions
+        adoptStyleSheet(shadowRoot, SHADOW_STYLES);
 
         // App Container created safely via standard DOM elements without innerHTML
         dialogEl = el('dialog', { id: 'todo-app-dialog' },
